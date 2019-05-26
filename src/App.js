@@ -1,93 +1,67 @@
 import React, { Component } from 'react';
 import './App.css';
+import queryString from 'query-string';
 
 let defaultStyle = {
 	color: 'green' 
 };
-let fakeServerData = {
-	user:{
-		name: ' Erik',
-		playlists: [
-		{
-			name: 'My favorites',
-			songs: [{name: 'Heeeej', duration: 1234},
-			 		{name: 'heeeeej', duration: 1564}, 
-			 		{name: 'hallo', duration: 1726} 
-			 		]
-		},
-		{
-			name: 'Discover weakly',
-			songs: [{name: 'Song1', duration: 1234},
-			 		{name: 'Song2', duration: 1564}, 
-			 		{name: 'Song3', duration: 1726}]
-		},
-		{
-			name: 'Playlist',
-			songs: [{name: 'SongA', duration: 1234},
-			 		{name: 'SongB', duration: 1564}, 
-			 		{name: 'SongC', duration: 1726}]
-			
+
+class Header extends Component{
+	render(){
+		let name = this.props.user
+  return(
+    <header className="navbar">
+      <h3>Welcome to spotify-viz {}</h3>
+    </header>
+		)
+	}
+}
+
+class Artist extends Component{
+	render(){
+		let artist = this.props.artist;
+		return(
+			<div style={{...defaultStyle, display: 'inline-block', width:"25%", height:"25%" }}>
+				<h2>{artist.name}</h2>
+				<img src={artist.imageUrl} style={{width: "160px", height:'160px', borderRadius:'60%', backgroundPosition:'50%'}} />			
+			</div>
+			)
 		}
-	   ]
 	}
-};
 
-
-
-class Playlist extends Component{
+class Artist1 extends Component{
 	render(){
+		let artist1 = this.props.artist;			
 		return(
-			<div style={{...defaultStyle, display: 'inline-block', width: "25%"}}>
-				<img/>
-				<h3> {this.props.playlist.name} </h3>
-				<ul>
-					{this.props.playlist.songs.map(song =>
-						<li>{song.name}</li>
-					)}
-				</ul>
+			<div style={{...defaultStyle, display: 'inline-block', width:"25%", height:"25%" }}>
+				<h2>{artist1.name}</h2>
+				<img src={artist1.imageUrl} style={{width: "160px", height:'160px', borderRadius:'60%', backgroundPosition:'50%'}} />			
 			</div>
-		);
+			)
+		}
 	}
-}
-
-class PlaylistCounter extends Component{
+class Artist2 extends Component{
 	render(){
+		let artist2 = this.props.artist;			
 		return(
-			<div style={{...defaultStyle, width: '40%', display: 'inline-block'}}>
-				<h2> {this.props.playlists.length} Playlists </h2>
+			<div style={{...defaultStyle, display: 'inline-block', width:"25%", height:"25%" }}>
+				<h2>{artist2.name}</h2>
+				<img src={artist2.imageUrl} style={{width: "160px", height:'160px', borderRadius:'60%', backgroundPosition:'50%'}} />			
 			</div>
-		);
+			)
+		}
 	}
-}
+	
 
-class HoursCounter extends Component{
+
+class Track extends Component{
 	render(){
-
-		let allSongs = this.props.playlists.reduce((songs, eachPlaylists)=> {
-		return songs.concat(eachPlaylists.songs)
-		}, [])
-		 									//reduce the playlist to a list of songs, will run for every playlist 	
-		let totalDuration = allSongs.reduce((sum,eachSong)=>{
-			return sum + eachSong.duration;
-		},0)
-
+		let track = this.props.track;		
 		return(
-			<div style={{...defaultStyle, width: '40%', display: 'inline-block'}}>
-				<h2>{Math.round(totalDuration/60)} Hours </h2>
-			</div>
-
-		);
-	}
-}
-
-class Filter extends Component{
-	render(){
-		return(
-			<div style={defaultStyle}>
-				<input type="text" onkeyUp={event=> 
-					this.props.onTextChange(event.target.value)}/>
-			</div>
-		);
+				<div style={{...defaultStyle, display: 'inline-block', width: "25%"}}>
+				<h2>{track.name}</h2>
+				</div>
+				)
 	}
 }
 
@@ -98,32 +72,173 @@ class App extends Component {
   				  filterString: ''
   	}
   }	
+
   componentDidMount(){ // is called the first time the comonent is loaded and rendered
-  	setTimeout(()=> {
-  	this.setState({serverData: fakeServerData}); // 
-  	 }, 2000 );
+  	let parsed = queryString.parse(window.location.search);
+  	let accessToken = parsed.access_token;
+  
+  	if(!accessToken)
+  		return;
+
+  	fetch('https://api.spotify.com/v1/me',{
+  		headers: { 'Authorization': 'Bearer ' + accessToken }
+  	}).then(response => response.json())
+  		.then(data => this.setState({ 
+  			user:{
+  				name: data.display_name}
+				},console.log(data)))
+		
+	//Collect top artists for the last 4 weeks 			
+  	let urlArtist = new URL('https://api.spotify.com/v1/me/top/artists'),
+  			params = {limit: 8,
+  					  time_range: 'short_term'
+  			}
+  	Object.keys(params).forEach(key=> urlArtist.searchParams.append(key, params[key]))			
+  	fetch(urlArtist,{
+  		headers: { 'Authorization': 'Bearer ' + accessToken }
+  	}).then(response => response.json())
+	  	.then(data => this.setState({
+  				artists: data.items.map(item =>{
+  				console.log(data.items);
+  				return{
+  					name: item.name,
+  					imageUrl: item.images[0].url,
+  					genres: [],
+  					imageHeight: item.images.height
+  				}
+  			})
+		  }))
+	//Collect top artists for the last 6 months 			
+	let urlArtist1 = new URL('https://api.spotify.com/v1/me/top/artists'),
+	params1 = {limit: 8,
+			  time_range: 'medium_term'
+			}
+		Object.keys(params1).forEach(key=> urlArtist1.searchParams.append(key, params1[key]))			
+		fetch(urlArtist1,{
+		headers: { 'Authorization': 'Bearer ' + accessToken }
+		}).then(response => response.json())
+		.then(data => this.setState({
+				artists1: data.items.map(item =>{
+				console.log(data.items);
+				return{
+					name: item.name,
+					imageUrl: item.images[0].url,
+					genres: [],
+					imageHeight: item.images.height
+				}
+			})
+		}))
+	//Collect top artists for the last year 			
+	let urlArtist2 = new URL('https://api.spotify.com/v1/me/top/artists'),
+	params2 = {limit: 8,
+			  time_range: 'long_term'
+			}
+		Object.keys(params2).forEach(key=> urlArtist1.searchParams.append(key, params2[key]))			
+		fetch(urlArtist2,{
+		headers: { 'Authorization': 'Bearer ' + accessToken }
+		}).then(response => response.json())
+		.then(data => this.setState({
+				artists2: data.items.map(item =>{
+				console.log(data.items);
+				return{
+					name: item.name,
+					imageUrl: item.images[0].url,
+					genres: [],
+					imageHeight: item.images.height
+				}
+			})
+		}))
+
+	let urlTracks = new URL('https://api.spotify.com/v1/me/top/tracks'),
+  			paramsTracks = {limit: 8,
+  					  		time_range: 'short_term'
+  			}
+  	Object.keys(paramsTracks).forEach(key=> urlTracks.searchParams.append(key, paramsTracks[key]))			
+  	fetch(urlTracks,{
+  		headers: { 'Authorization': 'Bearer ' + accessToken }
+  	}).then(response => response.json())
+	  	.then(data => this.setState({
+  				tracks: data.items.map(item =>{
+  				console.log(data);
+  				return{
+  					name: item.name
+  				}
+  			})
+  		})) 
+
   }
   render() {
-  	let playlistsToRender = this.state.serverData.user ? this.state.serverData.user.playlists
-  	.filter(playlist =>
-	  		playlist.name.toLowerCase().includes(
-	  			this.state.filterString.toLowerCase())
-	  	): []			 
+  	// Checks if user and playlist exist, then sets the state otherwise return empty array
+  	let artistsToRender = 
+  		this.state.user &&
+  		this.state.artists
+  		? this.state.artists.filter(artist =>
+	  			artist.name.toLowerCase().includes(
+	  			 this.state.filterString.toLowerCase()))
+		  : []
+
+	let artistsToRender1 = 
+  		this.state.user &&
+  		this.state.artists1
+  		? this.state.artists1.filter(artist =>
+	  			artist.name.toLowerCase().includes(
+	  			 this.state.filterString.toLowerCase()))
+		  : []
+
+	let artistsToRender2 = 
+  		this.state.user &&
+  		this.state.artists1
+  		? this.state.artists1.filter(artist =>
+	  			artist.name.toLowerCase().includes(
+	  			 this.state.filterString.toLowerCase()))
+  		: []		  		  
+
+  	let track = 
+  		this.state.user &&
+  		this.state.tracks
+  		? this.state.tracks.filter(track =>
+	  			track.name.toLowerCase().includes(
+	  			 this.state.filterString.toLowerCase()))
+  		: []
+  		
     return (
       <div className ="App">
-        {this.state.serverData.user ?
+        {this.state.user ?
         <div>
-          <h1> Välkommen     
-          {this.state.serverData.user.name}  
-        </h1>	
-	    <PlaylistCounter playlists={playlistsToRender}/>      					  
-	    <HoursCounter playlists={playlistsToRender}/>
-	  	<Filter onTextChange={text => this.setState({filterString: text})}/>
-	  	{this.state.serverData.user.playlists.map(playlist =>
-	  		<Playlist playlist={playlist}/>
+					<Header/>
+		  <h1>      
+			Hi, {this.state.user.name}  
+        </h1>
+	  	<h1>Your most listened artists: </h1>
+	  	<div className = "Month">
+	  		<div className ="Artists">
+	  			<h2>This month</h2>
+	  			  	 {artistsToRender.map((artist,index) =>
+        					<Artist artist ={artist} /> 
+        	        	)}
+				<h2>Last six months</h2>
+				{artistsToRender1.map((artist,index) =>
+        					<Artist1 artist ={artist} /> 
+        	        	)}
+				<h2>Last year</h2>
+				{artistsToRender2.map((artist,index) =>
+        					<Artist2 artist ={artist} /> 
+        	        	)}						
+	  		</div>
+	  		<div className = "Tracks">
+	  			<h1>Your most listened tracks</h1>
+	  		</div>	
+	  	</div>
 
-	  		)}
-      </div> : <h1> Loading....</h1>
+	  	 {track.map((track) =>
+        	 <Track track = {track}/>
+
+        	)}
+      </div> :  <button onClick={() => 
+		   window.location = window.location = ('http://localhost:8888/login') 
+		
+		}
+      		style={{padding: '28px', 'fontSize': '58px', 'marginTop':'235px' }}>Sign in with Spotify</button> 
   		}
   	</div>
     );
